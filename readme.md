@@ -1,6 +1,6 @@
 # Motion Detection Pipeline
 
-This repository contains a hardware accelerated motion detection and recording pipeline for Tapo security cameras
+This repository contains a hardware accelerated motion detection and recording pipeline for Tapo security cameras optimized for the Raspberry Pi 5
 
 ---
 
