@@ -6,8 +6,117 @@
 #include <string.h>
 #include <time.h>
 #include <stdio.h>
+#include <stdlib.h>
+#include <sys/stat.h>
 
 #include "motion.h"
+
+
+/* return 0 on success, -1 on error */
+int generate_motion_shader_glsl(
+    float sigma,
+    int radius,
+    float motion_threshold,
+    int width,
+    int height,
+    char *out_path,
+    size_t out_path_len
+) {
+    /* ---- build deterministic filename ---- */
+    snprintf(
+        out_path,
+        out_path_len,
+        "motion_s%.2f_r%d_t%.4f_%dx%d.glsl",
+        sigma,
+        radius,
+        motion_threshold,
+        width,
+        height
+    );
+
+    /* ---- if file already exists, reuse ---- */
+    struct stat st;
+    if (stat(out_path, &st) == 0) {
+        return 0;
+    }
+
+    /* ---- open for write ---- */
+    FILE *f = fopen(out_path, "w");
+    if (!f) {
+        fprintf(stderr, "fopen(%s) failed: %s\n", out_path, strerror(errno));
+        return -1;
+    }
+
+    /* ---- write shader ---- */
+    fprintf(f,
+        "//!HOOK MAIN\n"
+        "//!BIND HOOKED\n"
+        "//!BIND PREV\n"
+        "//!DESC grayscale -> blur -> motion detect\n"
+        "\n"
+        "////////////////////////////////////////////////////////////////////////\n"
+        "// AUTO-GENERATED FILE — DO NOT EDIT\n"
+        "// sigma=%.3f radius=%d threshold=%.6f size=%dx%d\n"
+        "////////////////////////////////////////////////////////////////////////\n"
+        "\n"
+        "#define SIGMA %.6f\n"
+        "#define RADIUS %d.0\n"
+        "#define MOTION_THRESHOLD %.6f\n"
+        "\n"
+        "#define get_weight(x) (exp(-(x)*(x)/(2.0*SIGMA*SIGMA)))\n"
+        "\n"
+        "vec4 hook() {\n"
+        "    vec4 curr = linearize(textureLod(HOOKED_raw, HOOKED_pos, 0.0) * HOOKED_mul);\n"
+        "\n"
+        "    float gray = dot(curr.rgb, vec3(0.2126, 0.7152, 0.0722));\n"
+        "    vec4 gray_vec = vec4(gray, gray, gray, 0.0);\n"
+        "\n"
+        "    vec4 csum = gray_vec;\n"
+        "    float wsum = 1.0;\n"
+        "    for (float i = 1.0; i <= RADIUS; ++i) {\n"
+        "        float w = get_weight(i);\n"
+        "        csum += (textureLod(HOOKED_raw, HOOKED_pos + vec2(0.0, -i)/HOOKED_size.xy, 0.0)\n"
+        "              + textureLod(HOOKED_raw, HOOKED_pos + vec2(0.0,  i)/HOOKED_size.xy, 0.0)) * w;\n"
+        "        wsum += 2.0 * w;\n"
+        "    }\n"
+        "    vec4 blur_y = csum / wsum;\n"
+        "\n"
+        "    csum = blur_y;\n"
+        "    wsum = 1.0;\n"
+        "    for (float i = 1.0; i <= RADIUS; ++i) {\n"
+        "        float w = get_weight(i);\n"
+        "        csum += (textureLod(HOOKED_raw, HOOKED_pos + vec2(-i, 0.0)/HOOKED_size.xy, 0.0)\n"
+        "              + textureLod(HOOKED_raw, HOOKED_pos + vec2( i, 0.0)/HOOKED_size.xy, 0.0)) * w;\n"
+        "        wsum += 2.0 * w;\n"
+        "    }\n"
+        "    vec4 blur = csum / wsum;\n"
+        "\n"
+        "    ivec3 pos = ivec3(HOOKED_pos * HOOKED_size, 0);\n"
+        "    vec4 prev = imageLoad(PREV, pos);\n"
+        "    float diff = abs(blur.r - prev.r);\n"
+        "    float motion = diff > MOTION_THRESHOLD ? 1.0 : 0.0;\n"
+        "\n"
+        "    imageStore(PREV, pos, blur);\n"
+        "\n"
+        "    return vec4(motion);\n"
+        "}\n"
+        "\n"
+        "//!TEXTURE PREV\n"
+        "//!SIZE %d %d 1\n"
+        "//!FORMAT r8\n"
+        "//!STORAGE\n",
+        sigma, radius, motion_threshold, width, height,
+        sigma,
+        radius,
+        motion_threshold,
+        width,
+        height
+    );
+
+    fclose(f);
+    return 0;
+}
+
 
 /* ================= TIME ================= */
 

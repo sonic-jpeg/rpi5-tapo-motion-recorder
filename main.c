@@ -72,7 +72,28 @@ static int start_ffmpeg_record(
 static void *camera_loop(void *arg) {
     camera_t *cam = arg;
 
+    /* ---- generate per-camera motion shader ---- */
+    char shader_path[256];
+
+    if (generate_motion_shader_glsl(
+            cam->sigma,
+            cam->radius,
+            cam->motion_threshold,
+            cam->width,
+            cam->height,
+            shader_path,
+            sizeof(shader_path)
+        ) != 0) {
+        fprintf(stderr, "[%s] Failed to generate motion shader\n", cam->name);
+        return NULL;
+    }
+
     /* ---- spawn motion ffmpeg ---- */
+    char vf_arg[512];
+    snprintf(vf_arg, sizeof(vf_arg),
+             "libplacebo=custom_shader_path=%s",
+             shader_path);
+
     char *motion_argv[] = {
         "ffmpeg",
         "-hide_banner",
@@ -119,8 +140,7 @@ static void *camera_loop(void *arg) {
             if (start_ffmpeg_record(&record_proc, cam) == 0) {
                 recording = 1;
             }
-        }
-        else if (r == -1 && recording) {
+        } else if (r == -1 && recording) {
             process_terminate(&record_proc);
             process_wait(&record_proc, NULL);
             process_close(&record_proc);
@@ -142,6 +162,7 @@ static void *camera_loop(void *arg) {
     motion_free(motion);
     return NULL;
 }
+
 
 /* ================= MAIN ================= */
 

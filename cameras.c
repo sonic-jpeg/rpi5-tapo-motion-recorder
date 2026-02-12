@@ -81,6 +81,12 @@ int load_cameras(const char *filename) {
         c->prestop_high_max     = JINT(item, "prestop_high_max", 20);
         c->cancel_prestop_frames= JINT(item, "cancel_prestop_frames", 15);
         c->full_stop_delay      = JDBL(item, "full_stop_delay", 4.0);
+		
+		/* ---- shader config ---- */
+        c->sigma            = JDBL(item, "sigma", 4.0);
+        c->radius           = JINT(item, "radius", 4.0);
+        c->motion_threshold = JDBL(item, "motion_threshold", 0.025);
+
     }
 
     json_decref(root);

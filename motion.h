@@ -31,6 +31,16 @@ typedef struct {
     double prestop_ts;
 } motion_t;
 
+/* return 0 on success, -1 on error */
+int generate_motion_shader_glsl(
+    float sigma,
+    int radius,
+    float motion_threshold,
+    int width,
+    int height,
+    char *out_path,
+    size_t out_path_len
+);
 motion_t *motion_new(int fd, const camera_t *cam);
 void motion_free(motion_t *m);
 
