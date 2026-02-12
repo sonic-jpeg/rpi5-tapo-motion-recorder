@@ -7,7 +7,9 @@ typedef struct {
     char *name;
     char *stream_hq;
     char *stream_lq;
-
+	
+    char *output_dir;
+	
     int width;
     int height;
     int frame_history;

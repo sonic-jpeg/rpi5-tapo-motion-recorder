@@ -49,8 +49,9 @@ int load_cameras(const char *filename) {
         const char *name = JSTR(item, "name");
         const char *hq   = JSTR(item, "stream_hq");
         const char *lq   = JSTR(item, "stream_lq");
+		const char *out = JSTR(item, "output_dir");
 
-        if (!name || !hq || !lq) {
+        if (!name || !hq || !lq || !out) {
             fprintf(stderr, "Invalid camera entry at index %zu\n", i);
             free_cameras();
             json_decref(root);
@@ -63,7 +64,8 @@ int load_cameras(const char *filename) {
         c->name      = strdup(name);
         c->stream_hq = strdup(hq);
         c->stream_lq = strdup(lq);
-
+        c->output_dir = strdup(out);
+		
         /* ---- video geometry ---- */
         c->width  = JINT(item, "width", 1280);
         c->height = JINT(item, "height", 720);
@@ -92,6 +94,7 @@ void free_cameras(void) {
         free(CAMERAS[i].name);
         free(CAMERAS[i].stream_hq);
         free(CAMERAS[i].stream_lq);
+		free(CAMERAS[i].output_dir);
     }
 
     free(CAMERAS);

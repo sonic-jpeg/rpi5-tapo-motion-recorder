@@ -11,8 +11,6 @@
 #include "motion.h"     // motion_t + motion_* functions
 #include "cameras.h"    // JSON camera loader
 
-#define BASE_DIR "/mnt/windows"
-
 /* ================= GLOBAL EXIT ================= */
 
 static volatile sig_atomic_t EXIT = 0;
@@ -35,16 +33,17 @@ static void utc_timestamp(char *buf, size_t len) {
 
 static int start_ffmpeg_record(
     process_t *p,
-    const char *camera_name,
-    const char *rtsp_url
+    const camera_t *cam
 ) {
     char ts[64];
     utc_timestamp(ts, sizeof(ts));
 
     char out_path[512];
     snprintf(out_path, sizeof(out_path),
-             "%s/%s/%s_%s.mkv",
-             BASE_DIR, camera_name, camera_name, ts);
+             "%s/%s_%s.mkv",
+             cam->output_dir,
+             cam->name,
+             ts);
 
     char *argv[] = {
         "ffmpeg",
@@ -58,7 +57,7 @@ static int start_ffmpeg_record(
         "-avoid_negative_ts", "make_zero",
         "-seek2any", "1",
         "-fflags", "+genpts",
-        "-i", (char *)rtsp_url,
+        "-i", (char *)cam->stream_hq,
         "-c", "copy",
         out_path,
         NULL
@@ -66,6 +65,7 @@ static int start_ffmpeg_record(
 
     return process_spawn(p, argv, 0, 0, 0);
 }
+
 
 /* ================= CAMERA THREAD ================= */
 
@@ -116,7 +116,7 @@ static void *camera_loop(void *arg) {
         int r = motion_feed_next_frame(motion);
 
         if (r == 1 && !recording) {
-            if (start_ffmpeg_record(&record_proc, cam->name, cam->stream_hq) == 0) {
+            if (start_ffmpeg_record(&record_proc, cam) == 0) {
                 recording = 1;
             }
         }

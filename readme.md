@@ -31,8 +31,8 @@ The pipeline:
 
 | Field | Type | Description |
 |-------|------|-------------|
-| `prev_alpha` | `uint8_t*` | Previous frame pixels; used for delta calculation |
-| `curr_alpha` | `uint8_t*` | Current frame pixels |
+| `prev_motion_mask` | `uint8_t*` | Previous frame pixels; used for delta calculation |
+| `curr_motion_mask` | `uint8_t*` | Current frame pixels |
 | `delta_history` | `double[FRAME_HISTORY]` | Circular buffer of recent frame deltas |
 | `hist_len` | `int` | Number of deltas stored (≤ `FRAME_HISTORY`) |
 | `hist_i` | `int` | Next index for delta circular buffer |

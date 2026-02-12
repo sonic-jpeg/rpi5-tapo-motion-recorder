@@ -12,8 +12,8 @@ typedef struct {
     size_t pixels;
 
     /* frame buffers */
-    uint8_t *prev_alpha;
-    uint8_t *curr_alpha;
+    uint8_t *prev_motion_mask;
+    uint8_t *curr_motion_mask;
     uint8_t *frame_buf;
 
     /* history */
